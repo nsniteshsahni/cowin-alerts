@@ -1,7 +1,7 @@
 const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const TelegramBot = require("node-telegram-bot-api");
 
-var age18 = true
+var age18 = false
 var pinCode = process.env.PINCODE
 var alerts = 0;
 var token = process.env.TOKEN
@@ -10,7 +10,7 @@ var intervalID;
 var remainingTime = 10;
 var fetchIntervalId;
 var running = false;
-vaccineFilter = true
+vaccineFilter = false
 var vaccine = "COVAXIN"
 
 var centerAddresses = ["DGD Sector-8 Rohini Delhi", "Sec.5 Rohini, Near Post Office", "A-3 Block, Sector-4 Rohini"]
@@ -124,15 +124,44 @@ function sendAlert(available) {
 }
 
 function sendMessageToChannel(available) {
-    available.forEach(element => {
-        var sessions = []
-        element.sessions.forEach(session => {
-            sessions.push({ date: session.date, min_age_limit: session.min_age_limit ,available_capacity: session.available_capacity, vaccine: session.vaccine });
-        })
-        sessions = vaccineFilter ? sessions.filter(session => session.vaccine === vaccine) : sessions
-        let slot = { name: element.name, address: element.address, sessions: sessions ? sessions : "No eligible vaccine at this center" }
-        if (!(slot.sessions === "No eligible vaccine at this center"))
-            bot.sendMessage("@deathstrokens", JSON.stringify(slot, null, 2));
-        console.log("Sent message to Telegram!!!!");
+    available.forEach((element) => {
+        setTimeout(() =>{
+            var sessions = []
+            element.sessions.forEach(session => {
+                sessions.push({ date: session.date, min_age_limit: session.min_age_limit ,available_capacity: session.available_capacity, vaccine: session.vaccine });
+            })
+            sessions = vaccineFilter ? sessions.filter(session => session.vaccine === vaccine) : sessions
+            let slot = { name: element.name, address: element.address, sessions: sessions.length!=0 ? sessions : "No "+ vaccine +" vaccine at this center" }
+            if (!(slot.sessions === "No eligible vaccine at this center")) { 
+               console.log(prettyPrintSlot(slot)); 
+               bot.sendMessage("@deathstrokens", prettyPrintSlot(slot));
+               console.log("Sent message to Telegram!!!!");
+            }
+        }, 100)
     });
 }
+let finalString
+
+function prettyPrintSlot(slot){
+    slotData = ""
+    slotData += "Name: " + slot.name;
+    slotData += "\nAddress: " + slot.address;
+    slotData += "\nCalendar\n---------------------";
+    for (let index = 0; index < slot.sessions.length; index++) {
+        slotData += getSessions(slot.sessions[index]);
+    }
+    return slotData;
+}
+
+function getSessions(session) { 
+    var string = ""
+    finalString = ""
+    string+= "\nDate: "+ session.date;
+    string+= "\nMinimum Age: " + session.min_age_limit;
+    string+= "\nSlots available: " + session.available_capacity;
+    string+= "\nVaccine: " + session.vaccine+"\n---------------------"
+    return string;
+    
+}
+
+
